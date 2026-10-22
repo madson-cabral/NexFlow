@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexFlow — Ecossistema 3D & Passeio Virtual Interativo</title>
+    <!-- Tailwind CSS CDN -->
+    <link rel="stylesheet" href="/assets/hero-immersive/utility.css">
+    <!-- Google Fonts: Plus Jakarta Sans, Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    
+
+
+    <style>
+        /* ==========================================
+           VARIÁVEIS E CONFIGURAÇÕES GLOBAIS
+           ========================================== */
+        :root {
+            --cyan-neon: #00f2fe;
+            --cyan-turquoise: #06b6d4;
+            --teal-neon: #14b8a6;
+            --blue-electric: #3b82f6;
+            --indigo-sub: #6366f1;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: #040914;
+            color: #ffffff;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* ==========================================
+           BACKGROUND ATMOSFÉRICO DARK MODE PREMIUM
+           ========================================== */
+        .hero-bg {
+            background: 
+                radial-gradient(circle at 68% 48%, rgba(0, 242, 254, 0.14) 0%, rgba(99, 102, 241, 0.08) 34%, rgba(7, 17, 36, 0.78) 65%, #040914 95%),
+                linear-gradient(135deg, #040914 0%, #071124 55%, #02050c 100%);
+        }
+
+        .cockpit-vignette {
+            box-shadow: inset 0 0 140px rgba(2, 5, 12, 0.92);
+            pointer-events: none;
+        }
+
+        .hud-scanlines {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0, 242, 254, 0.014) 50%,
+                rgba(0, 242, 254, 0.014)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+
+        .text-cyan-gradient {
+            background: linear-gradient(90deg, #00f2fe 0%, #06b6d4 45%, #14b8a6 80%, #6366f1 115%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 25px rgba(0, 242, 254, 0.32));
+        }
+
+        .btn-primary-glow {
+            background: linear-gradient(90deg, #06b6d4 0%, #00f2fe 100%);
+            color: #030914;
+            box-shadow: 0 0 28px rgba(0, 242, 254, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.75);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .btn-primary-glow:hover {
+            box-shadow: 0 0 42px rgba(0, 242, 254, 0.85), inset 0 1px 2px rgba(255, 255, 255, 0.95);
+            transform: translateY(-2px) scale(1.01);
+        }
+
+        /* ==========================================
+           MOTOR DE CÂMERA 3D CSS (PASSEIO VIRTUAL)
+           ========================================== */
+        .viewport-3d {
+            perspective: 1150px;
+            perspective-origin: 50% 50%;
+            overflow: hidden;
+            cursor: grab;
+        }
+
+        .viewport-3d:active {
+            cursor: grabbing;
+        }
+
+        .world-3d {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            transform-style: preserve-3d;
+            will-change: transform;
+        }
+
+        .node-3d {
+            position: absolute;
+            transform-style: preserve-3d;
+            backface-visibility: visible;
+        }
+
+        /* Piso de Grade Holográfica Infinita */
+        .floor-grid-3d {
+            width: 2800px;
+            height: 2800px;
+            margin-left: -1400px;
+            margin-top: -1400px;
+            background-size: 64px 64px;
+            background-image: 
+                linear-gradient(to right, rgba(0, 242, 254, 0.14) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 242, 254, 0.14) 1px, transparent 1px);
+            mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 18%, rgba(0,0,0,0.45) 48%, transparent 74%);
+            -webkit-mask-image: radial-gradient(circle at 50% 50%, rgba(0,0,0,1) 18%, rgba(0,0,0,0.45) 48%, transparent 74%);
+            transform: translate3d(0px, 275px, 0px) rotateX(90deg);
+            pointer-events: none;
+        }
+
+        /* Estações Holográficas 3D */
+        .holo-station {
+            background: linear-gradient(135deg, rgba(7, 17, 36, 0.86) 0%, rgba(4, 9, 20, 0.94) 100%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 242, 254, 0.34);
+            box-shadow: 
+                0 25px 60px rgba(0, 0, 0, 0.85),
+                0 0 28px rgba(0, 242, 254, 0.14),
+                inset 0 1px 1px rgba(255, 255, 255, 0.22);
+            transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s ease;
+            cursor: pointer;
+        }
+
+        .holo-station:hover {
+            border-color: rgba(0, 242, 254, 0.92);
+            box-shadow: 
+                0 30px 70px rgba(0, 0, 0, 0.92),
+                0 0 46px rgba(0, 242, 254, 0.38),
+                inset 0 1px 2px rgba(255, 255, 255, 0.45);
+        }
+
+        .holo-station.station-active {
+            border-color: #00f2fe;
+            box-shadow: 
+                0 0 75px rgba(0, 242, 254, 0.55),
+                0 28px 65px rgba(0, 0, 0, 0.95),
+                inset 0 0 26px rgba(0, 242, 254, 0.22);
+        }
+
+        /* Cantoneiras Técnicas Sci-Fi */
+        .holo-station::after {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            border-radius: inherit;
+            background: 
+                linear-gradient(to right, #00f2fe 8px, transparent 8px) 0 0,
+                linear-gradient(to bottom, #00f2fe 8px, transparent 8px) 0 0,
+                linear-gradient(to left, #00f2fe 8px, transparent 8px) 100% 0,
+                linear-gradient(to bottom, #00f2fe 8px, transparent 8px) 100% 0,
+                linear-gradient(to right, #00f2fe 8px, transparent 8px) 0 100%,
+                linear-gradient(to top, #00f2fe 8px, transparent 8px) 0 100%,
+                linear-gradient(to left, #00f2fe 8px, transparent 8px) 100% 100%,
+                linear-gradient(to top, #00f2fe 8px, transparent 8px) 100% 100%;
+            background-repeat: no-repeat;
+            background-size: 13px 13px;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Glassmorphism dos Painéis HUD */
+        .hud-glass {
+            background: linear-gradient(145deg, rgba(7, 17, 36, 0.85) 0%, rgba(4, 9, 20, 0.94) 100%);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 242, 254, 0.26);
+            box-shadow: 0 22px 55px rgba(0, 0, 0, 0.78), 0 0 32px rgba(0, 242, 254, 0.09);
+        }
+
+        /* ==========================================
+           ANIMAÇÕES DE FLUXO DE FIBRA ÓPTICA E PULSO
+           ========================================== */
+        @keyframes dataStream {
+            0% { stroke-dashoffset: 340; }
+            100% { stroke-dashoffset: 0; }
+        }
+
+        @keyframes dataStreamFast {
+            0% { stroke-dashoffset: 220; }
+            100% { stroke-dashoffset: 0; }
+        }
+
+        @keyframes spinCW {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes spinCCW {
+            from { transform: rotate(360deg); }
+            to { transform: rotate(0deg); }
+        }
+
+        @keyframes pulseCore {
+            0%, 100% { filter: drop-shadow(0 0 18px rgba(0, 242, 254, 0.65)); }
+            50% { filter: drop-shadow(0 0 38px rgba(0, 242, 254, 1)); }
+        }
+
+        @keyframes floatGentle {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+
+        .stream-1 {
+            stroke-dasharray: 28 170;
+            animation: dataStream 2.4s linear infinite;
+        }
+        .stream-2 {
+            stroke-dasharray: 18 150;
+            animation: dataStream 3.1s linear infinite 0.5s;
+        }
+        .stream-3 {
+            stroke-dasharray: 32 180;
+            animation: dataStreamFast 1.65s linear infinite 0.2s;
+        }
+
+        .spin-cw {
+            transform-origin: center;
+            transform-box: fill-box;
+            animation: spinCW 15s linear infinite;
+        }
+        .spin-ccw {
+            transform-origin: center;
+            transform-box: fill-box;
+            animation: spinCCW 11s linear infinite;
+        }
+
+        .core-glow {
+            animation: pulseCore 3s ease-in-out infinite;
+        }
+
+        .float-inner {
+            animation: floatGentle 5s ease-in-out infinite;
+        }
+
+        /* Transições de Modo Imersão Tela Cheia */
+        #leftHeroColumn, #rightTelemetryColumn {
+            transition: all 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        body.cockpit-expanded #leftHeroColumn {
+            transform: translateX(-115%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Pausa Global */
+        body.animations-paused *,
+        body.animations-paused *::before,
+        body.animations-paused *::after {
+            animation-play-state: paused !important;
+        }
+
+        /* Scrollbar Fina */
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(4, 9, 20, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 242, 254, 0.35);
+            border-radius: 9999px;
+        }
+
+        /* Host integration: preserve the full-screen art and original camera. */
+        body.host-motion-paused *,body.host-motion-paused *::before,body.host-motion-paused *::after{animation-play-state:paused!important}
+        input,textarea,select{user-select:text;-webkit-user-select:text}
+        button:focus-visible,[role=button]:focus-visible,a:focus-visible{outline:2px solid #00f2fe;outline-offset:3px}
+        @media(max-width:1023px),(max-height:800px){main>.pointer-events-none{max-height:100%;overflow-y:auto;overscroll-behavior:auto;padding-block:20px}#viewport3D{touch-action:pan-y}}
+        @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+        /* Keep the HUD scrollable without a decorative scrollbar over the scene. */
+        main>.pointer-events-none{scrollbar-width:none}
+        main>.pointer-events-none::-webkit-scrollbar{display:none;width:0;height:0}
+        /* Discreet disclosure rail: the scene stays unobstructed by default. */
+        .telemetry-drawer{position:absolute;right:12px;top:12px;bottom:12px;width:44px;z-index:35;color:#a4d4df;pointer-events:none}
+        .telemetry-drawer>summary{position:absolute;top:50%;translate:0 -50%;pointer-events:auto;list-style:none;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;width:44px;min-height:132px;padding:14px 9px;border:1px solid #00f2fe24;border-radius:24px;background:#07112466;backdrop-filter:blur(8px);cursor:pointer;transition:background .2s,border-color .2s}
+        .telemetry-drawer>summary::-webkit-details-marker{display:none}
+        .telemetry-drawer>summary>span{writing-mode:vertical-rl;font-family:Inter,sans-serif;font-size:11px;letter-spacing:.08em}
+        .telemetry-drawer>summary>i{width:4px;height:4px;background:#00f2fe88;border-radius:50%}
+        .telemetry-drawer>summary:hover,.telemetry-drawer[open]>summary{border-color:#00f2fe66;background:#071124b3;color:#c7f6fa}
+        .telemetry-drawer>summary:focus-visible{outline:2px solid #00f2fe;outline-offset:3px}
+        .telemetry-drawer #rightTelemetryColumn{position:absolute;right:56px;top:50%;translate:0 -50%;width:min(390px,calc(100vw - 80px));max-height:100%;pointer-events:auto;overflow-y:auto;overscroll-behavior:contain;gap:10px;box-sizing:border-box;padding:14px;background:#040914f2;border:1px solid #00f2fe40;border-radius:16px;backdrop-filter:blur(16px)}
+        .telemetry-heading{display:flex;align-items:center;justify-content:space-between;width:100%;font-size:12px;color:#a4d4df}
+        .telemetry-heading>button{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;color:#a4d4df;background:#071124;border:1px solid #00f2fe24;cursor:pointer}
+        .telemetry-drawer #stationTelemetryCard{box-shadow:none;background:transparent;border:0;padding:0}
+        @media(max-width:640px){.telemetry-drawer{right:5px}.telemetry-drawer #rightTelemetryColumn{right:49px;width:calc(100vw - 66px);max-height:100%}.telemetry-drawer>summary{min-height:116px}}
+    </style>
+</head>
+<body class="hero-bg h-screen w-screen flex flex-col justify-between relative selection:bg-cyan-400 selection:text-slate-950">
+
+    <!-- ==========================================
+         0. CANVAS DE PARTÍCULAS E WARP ESPACIAL 3D
+         ========================================== -->
+    <canvas id="warpCanvas" class="fixed inset-0 w-full h-full pointer-events-none z-0"></canvas>
+    <div class="cockpit-vignette fixed inset-0 z-10"></div>
+    <div class="hud-scanlines fixed inset-0 z-10"></div>
+
+    <!-- ==========================================
+         1. NAVBAR SUPERIOR (IDENTIDADE NEXFLOW)
+         ========================================== -->
+    <header class="w-full border-b border-cyan-500/15 bg-[#040914]/85 backdrop-blur-md z-40 relative shrink-0">
+        <!-- Barra de Progresso Luminosa do Auto-Tour -->
+        <div id="autoTourProgressContainer" class="w-full h-[2px] bg-transparent overflow-hidden">
+            <div id="autoTourProgressBar" class="h-full w-0 bg-gradient-to-r from-[#00f2fe] via-[#14b8a6] to-[#6366f1] shadow-[0_0_12px_#00f2fe] transition-none"></div>
+        </div>
+
+        <div class="max-w-[1520px] mx-auto px-4 sm:px-8 lg:px-10 h-16 sm:h-[72px] flex items-center justify-between gap-4">
+            
+            <!-- Logo NexFlow à Esquerda com Ícone Circular Tecnológico Luminoso -->
+            <div class="flex items-center gap-5">
+                <a href="#top" onclick="flyToStation(0); return false;" class="flex items-center gap-3 group focus:outline-none">
+                    <div class="relative w-10 h-10 rounded-full flex items-center justify-center bg-[#071124] border border-cyan-400/60 shadow-[0_0_20px_rgba(0,242,254,0.4)] group-hover:shadow-[0_0_30px_rgba(0,242,254,0.85)] transition-all duration-300">
+                        <svg class="w-7 h-7" viewBox="0 0 40 40" fill="none">
+                            <circle cx="20" cy="20" r="16" stroke="url(#navLogoGrad)" stroke-width="1.6" stroke-dasharray="6 3" class="spin-cw"/>
+                            <circle cx="20" cy="20" r="12" stroke="#06b6d4" stroke-width="1" stroke-opacity="0.4"/>
+                            <path d="M13.5 14.5L26.5 25.5M26.5 14.5L13.5 25.5" stroke="#00f2fe" stroke-width="2.5" stroke-linecap="round"/>
+                            <circle cx="20" cy="20" r="3" fill="#ffffff" filter="drop-shadow(0 0 6px #00f2fe)"/>
+                            <defs>
+                                <linearGradient id="navLogoGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                                    <stop stop-color="#00f2fe"/>
+                                    <stop offset="0.5" stop-color="#14b8a6"/>
+                                    <stop offset="1" stop-color="#6366f1"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                    </div>
+                    <div>
+                        <span class="font-display text-xl tracking-tight font-bold text-white block leading-none">
+                            Nex<span class="text-nex-cyan font-semibold">Flow</span>
+                        </span>
+                        <span class="font-mono text-[9px] tracking-[0.22em] text-cyan-400/80 uppercase block mt-0.5">
+                            ECOSSISTEMA 3D
+                        </span>
+                    </div>
+                </a>
+
+                <!-- Badge Status da Estação Atual -->
+                <div class="hidden xl:flex items-center gap-2 bg-[#071124]/90 px-3.5 py-1.5 rounded-full border border-cyan-500/25">
+                    <span class="w-2 h-2 rounded-full bg-nex-cyan animate-ping"></span>
+                    <span class="w-2 h-2 rounded-full bg-nex-cyan -ml-4"></span>
+                    <span id="navCurrentStationText" class="font-mono text-[11px] text-cyan-200 font-medium">
+                        ESTAÇÃO 01/07: VISÃO GERAL
+                    </span>
+                </div>
+            </div>
+
+            <!-- Links de Navegação e Controles -->
+            <div class="flex items-center gap-3 sm:gap-6">
+                <nav class="hidden lg:flex items-center gap-7">
+                    <button onclick="flyToStation(1)" class="text-xs sm:text-sm font-medium text-slate-300 hover:text-nex-cyan transition-colors">
+                        Soluções
+                    </button>
+                    <button onclick="flyToStation(2)" class="text-xs sm:text-sm font-medium text-slate-300 hover:text-nex-cyan transition-colors">
+                        Como trabalhamos
+                    </button>
+                    <button onclick="toggleAutoTour()" class="text-xs sm:text-sm font-medium text-cyan-300 hover:text-white flex items-center gap-1.5 transition-colors">
+                        <span class="w-1.5 h-1.5 rounded-full bg-nex-cyan"></span>
+                        <span>Ecossistema 3D</span>
+                    </button>
+                    <button onclick="flyToStation(6)" class="text-xs sm:text-sm font-medium text-slate-300 hover:text-nex-cyan transition-colors">
+                        Aplicações
+                    </button>
+                </nav>
+
+                <!-- Botão de Som Sci-Fi (Web Audio API) -->
+                <button id="btnAudioToggle" onclick="toggleSound()" title="Ativar/Desativar Efeitos Sonoros de Telemetria 3D" class="w-9 h-9 rounded-full flex items-center justify-center bg-[#071124] border border-cyan-500/30 hover:border-nex-cyan text-slate-300 hover:text-nex-cyan transition-all">
+                    <span id="audioIcon" class="text-xs font-mono">🔇</span>
+                </button>
+
+                <!-- CTA Vamos Conversar com Borda Arredondada Luminosa -->
+                <button onclick="openQuickModal('Vamos conversar sobre sua operação')" class="px-5 py-2 rounded-full text-xs sm:text-sm font-medium text-white bg-[#071124]/90 border border-cyan-400/60 shadow-[0_0_18px_rgba(0,242,254,0.22)] hover:border-nex-cyan hover:bg-cyan-500/15 hover:shadow-[0_0_28px_rgba(0,242,254,0.5)] transition-all duration-300">
+                    Vamos conversar
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- ==========================================
+         2. PALCO PRINCIPAL: CÂMERA 3D + HUD INTERATIVO
+         ========================================== -->
+    <main class="flex-1 relative overflow-hidden flex items-center z-20">
+
+        <!-- ====================================================
+             PALCO 3D INTERATIVO (7 ESTAÇÕES DO ECOSSISTEMA NEXFLOW)
+             ==================================================== -->
+        <div id="viewport3D" class="viewport-3d absolute inset-0 w-full h-full z-10">
+            <div id="world3D" class="world-3d">
+
+                <!-- 1. PISO DE GRADE HOLOGRÁFICA EM PERSPECTIVA -->
+                <div class="node-3d floor-grid-3d"></div>
+
+                <!-- 2. MALHA ESPACIAL DE FIBRA ÓPTICA CONECTANDO O NÚCLEO ÀS 6 ESTAÇÕES ORBITAIS -->
+                <div class="node-3d" style="width: 1400px; height: 920px; margin-left: -700px; margin-top: -460px; transform: translate3d(0px, 0px, -40px);">
+                    <svg viewBox="0 0 1400 920" class="w-full h-full overflow-visible pointer-events-none" fill="none">
+                        <defs>
+                            <filter id="glow3D" x="-20%" y="-20%" width="140%" height="140%">
+                                <feGaussianBlur stdDeviation="4" result="blur" />
+                                <feMerge>
+                                    <feMergeNode in="blur" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                            <linearGradient id="beamCyan" x1="700" y1="460" x2="200" y2="150" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%" stop-color="#00f2fe" stop-opacity="0.95"/>
+                                <stop offset="65%" stop-color="#14b8a6" stop-opacity="0.5"/>
+                                <stop offset="100%" stop-color="#6366f1" stop-opacity="0.15"/>
+                            </linearGradient>
+                            <linearGradient id="beamRight" x1="700" y1="460" x2="1200" y2="150" gradientUnits="userSpaceOnUse">
+                                <stop offset="0%" stop-color="#00f2fe" stop-opacity="0.95"/>
+                                <stop offset="65%" stop-color="#3b82f6" stop-opacity="0.55"/>
+                                <stop offset="100%" stop-color="#6366f1" stop-opacity="0.15"/>
+                            </linearGradient>
+                        </defs>
+
+                        <!-- Anéis Orbitais Concêntricos -->
+                        <ellipse cx="700" cy="480" rx="460" ry="230" stroke="rgba(0, 242, 254, 0.14)" stroke-width="1.5" stroke-dasharray="12 8"/>
+                        <ellipse cx="700" cy="480" rx="310" ry="155" stroke="rgba(99, 102, 241, 0.22)" stroke-width="1.5" stroke-dasharray="24 12"/>
+                        <ellipse cx="700" cy="480" rx="170" ry="85" stroke="rgba(20, 184, 166, 0.25)" stroke-width="1.2"/>
+
+                        <!-- Trilha 1 -> Sistemas & Automação (Noroeste) -->
+                        <path d="M640 445 L450 340 L320 275" stroke="url(#beamCyan)" stroke-width="2.2"/>
+                        <path d="M640 445 L450 340 L320 275" stroke="#00f2fe" stroke-width="3.5" stroke-linecap="round" filter="url(#glow3D)" class="stream-1"/>
+
+                        <!-- Trilha 2 -> Dashboards & BI (Nordeste) -->
+                        <path d="M760 445 L950 340 L1080 275" stroke="url(#beamRight)" stroke-width="2.2"/>
+                        <path d="M760 445 L950 340 L1080 275" stroke="#00f2fe" stroke-width="3.5" stroke-linecap="round" filter="url(#glow3D)" class="stream-3"/>
+
+                        <!-- Trilha 3 -> E-commerce (Leste) -->
+                        <path d="M775 495 L985 520 L1145 535" stroke="url(#beamRight)" stroke-width="2.2"/>
+                        <path d="M775 495 L985 520 L1145 535" stroke="#14b8a6" stroke-width="3.5" stroke-linecap="round" filter="url(#glow3D)" class="stream-2"/>
+
+                        <!-- Trilha 4 -> Landing Pages (Oeste) -->
+                        <path d="M625 495 L415 520 L255 535" stroke="url(#beamCyan)" stroke-width="2.2"/>
+                        <path d="M625 495 L415 520 L255 535" stroke="#00f2fe" stroke-width="3.5" stroke-linecap="round" filter="url(#glow3D)" class="stream-3"/>
+
+                        <!-- Trilha 5 -> Bio Sites (Sudeste Frontal) -->
+                        <path d="M745 525 L870 620 L955 695" stroke="url(#beamRight)" stroke-width="2.2"/>
+                        <path d="M745 525 L870 620 L955 695" stroke="#6366f1" stroke-width="3.5" stroke-linecap="round" filter="url(#glow3D)" class="stream-1"/>
+
+                        <!-- Trilha 6 -> Aplicativos Web (Sudoeste Frontal) -->
+                        <path d="M655 525 L530 620 L445 695" stroke="url(#beamCyan)" stroke-width="2.2"/>
+                        <path d="M655 525 L530 620 L445 695" stroke="#00f2fe" stroke-width="3.5" stroke-linecap="round" filter="url(#glow3D)" class="stream-2"/>
+
+                        <!-- Nós de Comutação Óptica -->
+                        <g fill="#00f2fe" filter="url(#glow3D)">
+                            <circle cx="450" cy="340" r="4.5"/>
+                            <circle cx="950" cy="340" r="4.5"/>
+                            <circle cx="985" cy="520" r="4.5"/>
+                            <circle cx="415" cy="520" r="4.5"/>
+                            <circle cx="870" cy="620" r="4.5"/>
+                            <circle cx="530" cy="620" r="4.5"/>
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- ====================================================
+                     ESTAÇÃO 01 (CENTRO): VISÃO GERAL — NÚCLEO CENTRAL NEXFLOW
+                     Coordenada 3D: (0, 20, 40)
+                     ==================================================== -->
+                <div id="stationCard-0" onclick="flyToStation(0)" class="node-3d group cursor-pointer" style="width: 310px; height: 280px; margin-left: -155px; margin-top: -140px; transform: translate3d(0px, 20px, 40px);">
+                    <div class="flex items-center justify-between px-3 py-1 rounded-full bg-[#071124]/95 border border-cyan-400/60 shadow-[0_0_22px_rgba(0,242,254,0.35)] mb-1 mx-auto w-max gap-2 group-hover:scale-105 transition-transform">
+                        <span class="w-2 h-2 rounded-full bg-nex-cyan animate-ping"></span>
+                        <span class="font-mono text-[10px] font-bold tracking-wider text-cyan-100">01. NÚCLEO CENTRAL NEXFLOW</span>
+                        <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-cyan-400/20 text-nex-cyan">HUB 360°</span>
+                    </div>
+
+                    <div class="float-inner w-full h-[240px] flex items-center justify-center">
+                        <svg viewBox="0 0 280 240" class="w-full h-full overflow-visible">
+                            <defs>
+                                <linearGradient id="coreTopGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#132d54"/>
+                                    <stop offset="50%" stop-color="#071529"/>
+                                    <stop offset="100%" stop-color="#040914"/>
+                                </linearGradient>
+                            </defs>
+
+                            <ellipse cx="140" cy="184" rx="98" ry="48" fill="rgba(0, 242, 254, 0.24)" filter="blur(16px)" class="core-glow"/>
+
+                            <!-- Anéis de Sincronização Giratórios -->
+                            <g transform="translate(140, 160) scale(1, 0.52)">
+                                <circle cx="0" cy="0" r="106" fill="none" stroke="#00f2fe" stroke-width="1.8" stroke-dasharray="22 12 6 12" class="spin-cw"/>
+                                <circle cx="0" cy="0" r="88" fill="none" stroke="#6366f1" stroke-width="2.2" stroke-dasharray="36 18" class="spin-ccw"/>
+                            </g>
+
+                            <!-- Base Arquitetural Isométrica -->
+                            <polygon points="140,100 234,148 140,196 46,148" fill="#081830" stroke="#00f2fe" stroke-width="1.6"/>
+                            <polygon points="46,148 140,196 140,216 46,168" fill="#061224" stroke="#06b6d4" stroke-width="1.2"/>
+                            <polygon points="234,148 140,196 140,216 234,168" fill="#040d1b" stroke="#6366f1" stroke-width="1.2"/>
+
+                            <!-- Portas Ópticas dos 7 Setores -->
+                            <g fill="#00f2fe">
+                                <circle cx="68" cy="168" r="2.8"/>
+                                <circle cx="85" cy="177" r="2.8" fill="#fff"/>
+                                <circle cx="102" cy="185" r="2.8" fill="#14b8a6"/>
+                                <circle cx="119" cy="193" r="2.8" fill="#fff"/>
+                                <circle cx="161" cy="193" r="2.8" fill="#fff"/>
+                                <circle cx="178" cy="185" r="2.8"/>
+                                <circle cx="195" cy="177" r="2.8" fill="#14b8a6"/>
+                                <circle cx="212" cy="168" r="2.8" fill="#6366f1"/>
+                            </g>
+
+                            <!-- Câmara Quântica Luminosa -->
+                            <polygon points="140,82 212,120 140,158 68,120" fill="rgba(0, 242, 254, 0.42)" class="core-glow"/>
+
+                            <!-- Chassi Superior do Processador -->
+                            <polygon points="68,104 140,141 140,158 68,121" fill="#0a2040" stroke="#00f2fe" stroke-width="1.3"/>
+                            <polygon points="212,104 140,141 140,158 212,121" fill="#07152b" stroke="#14b8a6" stroke-width="1.3"/>
+                            <polyline points="68,112 140,149 212,112" fill="none" stroke="#ffffff" stroke-width="3" class="core-glow"/>
+
+                            <!-- Tampo Superior -->
+                            <polygon points="140,66 212,104 140,141 68,104" fill="url(#coreTopGrad)" stroke="#00f2fe" stroke-width="2"/>
+                            <polygon points="140,74 194,102 140,130 86,102" fill="#040914" stroke="#14b8a6" stroke-width="1.2"/>
+
+                            <!-- Emissor Central -->
+                            <g transform="translate(140, 102) scale(1, 0.52)">
+                                <circle cx="0" cy="0" r="34" fill="none" stroke="#00f2fe" stroke-width="2.5" stroke-dasharray="12 6" class="spin-ccw"/>
+                                <circle cx="0" cy="0" r="20" fill="rgba(0, 242, 254, 0.28)" stroke="#ffffff" stroke-width="1.5"/>
+                                <circle cx="0" cy="0" r="7" fill="#ffffff"/>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- ====================================================
+                     ESTAÇÃO 02 (NOROESTE): SISTEMAS & AUTOMAÇÃO
+                     Coordenada 3D: (-360, -155, -80) | RotateY(22deg)
+                     ==================================================== -->
+                <div id="stationCard-1" onclick="flyToStation(1)" class="node-3d holo-station rounded-2xl p-4" style="width: 300px; height: 205px; margin-left: -150px; margin-top: -102px; transform: translate3d(-360px, -155px, -80px) rotateY(22deg) rotateX(6deg);">
+                    <div class="flex items-center justify-between border-b border-cyan-500/25 pb-2 mb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="px-1.5 py-0.5 rounded bg-cyan-400/20 border border-cyan-400/40 font-mono text-[9px] font-bold text-nex-cyan">02</span>
+                            <span class="font-mono text-[11px] font-semibold tracking-wider text-white uppercase">SISTEMAS & AUTOMAÇÃO</span>
+                        </div>
+                        <span class="px-2 py-0.5 text-[8px] font-mono bg-teal-500/20 text-teal-300 rounded-full border border-teal-400/30">WORKFLOWS</span>
+                    </div>
+
+                    <!-- Grafo de Automação e APIs -->
+                    <div class="relative h-[112px] w-full bg-[#030710]/80 rounded-xl p-2 border border-cyan-500/15">
+                        <svg viewBox="0 0 260 95" class="w-full h-full overflow-visible">
+                            <path d="M44,22 L95,22 L95,48 L140,48" fill="none" stroke="#00f2fe" stroke-width="1.8"/>
+                            <path d="M44,74 L95,74 L95,48 L140,48" fill="none" stroke="#6366f1" stroke-width="1.8"/>
+                            <path d="M182,48 L215,24" fill="none" stroke="#14b8a6" stroke-width="1.8"/>
+                            <path d="M182,48 L215,72" fill="none" stroke="#00f2fe" stroke-width="1.8"/>
+                            <path d="M44,22 L95,22 L95,48 L140,48 L215,24" fill="none" stroke="#ffffff" stroke-width="3" class="stream-3"/>
+
+                            <rect x="6" y="10" width="38" height="24" rx="4" fill="#071529" stroke="#00f2fe" stroke-width="1.4"/>
+                            <text x="25" y="25" text-anchor="middle" fill="#00f2fe" font-family="JetBrains Mono" font-size="8">ERP</text>
+
+                            <rect x="6" y="62" width="38" height="24" rx="4" fill="#071529" stroke="#6366f1" stroke-width="1.4"/>
+                            <text x="25" y="77" text-anchor="middle" fill="#a5b4fc" font-family="JetBrains Mono" font-size="8">CRM</text>
+
+                            <rect x="134" y="32" width="48" height="32" rx="6" fill="#0b2545" stroke="#00f2fe" stroke-width="2"/>
+                            <text x="158" y="51" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-weight="bold" font-size="8">API_BOT</text>
+
+                            <rect x="215" y="12" width="38" height="24" rx="4" fill="rgba(0, 242, 254, 0.18)" stroke="#00f2fe" stroke-width="1.4"/>
+                            <text x="234" y="27" text-anchor="middle" fill="#ffffff" font-family="JetBrains Mono" font-size="7.5">NF-e</text>
+
+                            <rect x="215" y="60" width="38" height="24" rx="4" fill="rgba(20, 184, 166, 0.2)" stroke="#14b8a6" stroke-width="1.4"/>
+                            <text x="234" y="75" text-anchor="middle" fill="#5eead4" font-family="JetBrains Mono" font-size="7.5">SYNC</text>
+                        </svg>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-300 mt-2">
+                        <span>TASKS/MIN: <strong class="text-nex-cyan">18.450</strong></span>
+                        <span class="text-cyan-400">Viajar p/ Setor →</span>
+                    </div>
+                </div>
+
+                <!-- ====================================================
+                     ESTAÇÃO 03 (NORDESTE): DASHBOARDS & BI
+                     Coordenada 3D: (360, -155, -80) | RotateY(-22deg)
+                     ==================================================== -->
+                <div id="stationCard-2" onclick="flyToStation(2)" class="node-3d holo-station rounded-2xl p-4" style="width: 315px; height: 205px; margin-left: -157px; margin-top: -102px; transform: translate3d(360px, -155px, -80px) rotateY(-22deg) rotateX(6deg);">
+                    <div class="flex items-center justify-between border-b border-cyan-500/25 pb-2 mb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="px-1.5 py-0.5 rounded bg-cyan-400/20 border border-cyan-400/40 font-mono text-[9px] font-bold text-nex-cyan">03</span>
+                            <span class="font-mono text-[11px] font-semibold tracking-wider text-white uppercase">DASHBOARDS & BI</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-teal-400 animate-ping"></span>
+                            <span class="text-[8px] font-mono text-teal-300">REAL-TIME KPI</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-12 gap-2.5 items-center h-[112px]">
+                        <div class="col-span-5 flex flex-col items-center justify-center bg-[#030710]/80 rounded-xl p-2 border border-cyan-500/15 h-full">
+                            <div class="relative w-16 h-16 flex items-center justify-center">
+                                <svg class="w-full h-full -rotate-90" viewBox="0 0 64 64">
+                                    <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(0, 242, 254, 0.12)" stroke-width="5"/>
+                                    <circle cx="32" cy="32" r="26" fill="none" stroke="#00f2fe" stroke-width="5" stroke-dasharray="163" stroke-dashoffset="10" stroke-linecap="round"/>
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span id="liveBiGauge" class="font-mono text-xs font-bold text-white">98%</span>
+                                    <span class="text-[6.5px] font-mono text-nex-cyan">PRECISÃO</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-span-7 flex flex-col justify-between bg-[#030710]/80 rounded-xl p-2.5 border border-cyan-500/15 h-full">
+                            <div class="flex justify-between text-[9px] font-mono">
+                                <span class="text-slate-400">EBITDA / DRE LIVE</span>
+                                <span class="text-teal-300 font-bold">+24.8%</span>
+                            </div>
+                            <!-- Barras & Curva BI -->
+                            <svg viewBox="0 0 140 52" class="w-full h-12 overflow-visible">
+                                <rect x="6" y="28" width="12" height="22" rx="2" fill="rgba(59, 130, 246, 0.45)"/>
+                                <rect x="26" y="20" width="12" height="30" rx="2" fill="rgba(6, 182, 212, 0.55)"/>
+                                <rect x="46" y="24" width="12" height="26" rx="2" fill="rgba(20, 184, 166, 0.6)"/>
+                                <rect x="66" y="14" width="12" height="36" rx="2" fill="rgba(0, 242, 254, 0.75)"/>
+                                <rect x="86" y="18" width="12" height="32" rx="2" fill="rgba(99, 102, 241, 0.65)"/>
+                                <rect x="106" y="6" width="12" height="44" rx="2" fill="#00f2fe"/>
+                                <path d="M12,26 L32,18 L52,22 L72,12 L92,15 L112,4" fill="none" stroke="#ffffff" stroke-width="2"/>
+                            </svg>
+                            <div class="flex justify-between text-[8px] font-mono text-slate-400">
+                                <span>FONTES: 14 ATIVAS</span>
+                                <span class="text-nex-cyan">LATÊNCIA 8ms</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-300 mt-2">
+                        <span>CONTROLE: <strong class="text-nex-cyan">360° OPERACIONAL</strong></span>
+                        <span class="text-cyan-400">Viajar p/ Setor →</span>
+                    </div>
+                </div>
+
+                <!-- ====================================================
+                     ESTAÇÃO 04 (LESTE): E-COMMERCE DE ALTA PERFORMANCE
+                     Coordenada 3D: (430, 35, 30) | RotateY(-28deg)
+                     ==================================================== -->
+                <div id="stationCard-3" onclick="flyToStation(3)" class="node-3d holo-station rounded-2xl p-4" style="width: 305px; height: 205px; margin-left: -152px; margin-top: -102px; transform: translate3d(430px, 35px, 30px) rotateY(-28deg) rotateX(2deg);">
+                    <div class="flex items-center justify-between border-b border-cyan-500/25 pb-2 mb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="px-1.5 py-0.5 rounded bg-cyan-400/20 border border-cyan-400/40 font-mono text-[9px] font-bold text-nex-cyan">04</span>
+                            <span class="font-mono text-[11px] font-semibold tracking-wider text-white uppercase">E-COMMERCE & CHECKOUT</span>
+                        </div>
+                        <span class="px-2 py-0.5 text-[8px] font-mono bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-400/30">+38% CONV.</span>
+                    </div>
+
+                    <!-- Mockup 3D de Catálogo Inteligente, Carrinho e Vendas em Tempo Real -->
+                    <div class="grid grid-cols-12 gap-2.5 h-[112px]">
+                        <div class="col-span-7 bg-[#030710]/85 rounded-xl p-2.5 border border-cyan-500/15 flex flex-col justify-between">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[8px] font-mono text-slate-400">CHECKOUT 1-CLICK</span>
+                                <span class="text-[8px] font-mono text-nex-cyan">PIX / CARTÃO</span>
+                            </div>
+                            <div class="space-y-1.5 my-1">
+                                <div class="flex items-center justify-between bg-slate-900/90 px-2 py-1 rounded border border-cyan-500/20">
+                                    <span class="text-[8.5px] font-mono text-white">🛒 Pedido #8942</span>
+                                    <span id="liveEcomOrder" class="text-[8.5px] font-mono text-emerald-400 font-bold">R$ 1.490</span>
+                                </div>
+                                <div class="flex items-center justify-between bg-slate-900/90 px-2 py-1 rounded border border-indigo-500/20">
+                                    <span class="text-[8.5px] font-mono text-slate-300">⚡ Sync Estoque ERP</span>
+                                    <span class="text-[8px] font-mono text-cyan-300">12ms OK</span>
+                                </div>
+                            </div>
+                            <div class="w-full bg-gradient-to-r from-cyan-400 to-teal-400 text-slate-950 font-mono font-bold text-[8px] text-center py-1 rounded">
+                                FINALIZAR COMPRA INSTANTÂNEA
+                            </div>
+                        </div>
+
+                        <div class="col-span-5 bg-[#030710]/85 rounded-xl p-2.5 border border-cyan-500/15 flex flex-col justify-between items-center text-center">
+                            <span class="text-[8px] font-mono text-slate-400 uppercase">PEDIDOS / SEG</span>
+                            <span id="liveEcomRate" class="font-mono text-xl font-extrabold text-nex-cyan my-auto">42/s</span>
+                            <span class="text-[7.5px] font-mono text-emerald-300 bg-emerald-500/15 px-1.5 py-0.5 rounded">CATÁLOGO IA</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-300 mt-2">
+                        <span>INTEGRAÇÃO: <strong class="text-white">ERP + PAGAMENTO</strong></span>
+                        <span class="text-cyan-400">Viajar p/ Setor →</span>
+                    </div>
+                </div>
+
+                <!-- ====================================================
+                     ESTAÇÃO 05 (OESTE): LANDING PAGES DE ALTA CONVERSÃO
+                     Coordenada 3D: (-430, 35, 30) | RotateY(28deg)
+                     ==================================================== -->
+                <div id="stationCard-4" onclick="flyToStation(4)" class="node-3d holo-station rounded-2xl p-4" style="width: 305px; height: 205px; margin-left: -152px; margin-top: -102px; transform: translate3d(-430px, 35px, 30px) rotateY(28deg) rotateX(2deg);">
+                    <div class="flex items-center justify-between border-b border-cyan-500/25 pb-2 mb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="px-1.5 py-0.5 rounded bg-cyan-400/20 border border-cyan-400/40 font-mono text-[9px] font-bold text-nex-cyan">05</span>
+                            <span class="font-mono text-[11px] font-semibold tracking-wider text-white uppercase">LANDING PAGES</span>
+                        </div>
+                        <span class="px-2 py-0.5 text-[8px] font-mono bg-cyan-500/20 text-cyan-200 rounded-full border border-cyan-400/40">SCORE 100/100</span>
+                    </div>
+
+                    <!-- Wireframe 3D de Alta Velocidade + Funil de Conversão & Teste A/B -->
+                    <div class="grid grid-cols-12 gap-2.5 h-[112px]">
+                        <!-- Mini Wireframe LP -->
+                        <div class="col-span-6 bg-[#030710]/85 rounded-xl p-2 border border-cyan-500/15 flex flex-col justify-between">
+                            <div class="flex items-center justify-between border-b border-slate-800 pb-1">
+                                <div class="flex gap-1">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                                    <span class="w-1.5 h-1.5 rounded-full bg-teal-400"></span>
+                                </div>
+                                <span class="text-[7px] font-mono text-cyan-300">TESTE A/B: VENCEDOR</span>
+                            </div>
+                            <div class="space-y-1 my-1">
+                                <div class="w-3/4 h-2 rounded bg-white/80"></div>
+                                <div class="w-full h-2 rounded bg-cyan-400/80"></div>
+                                <div class="w-5/6 h-1.5 rounded bg-slate-600"></div>
+                            </div>
+                            <div class="w-2/3 h-3.5 rounded-full bg-gradient-to-r from-cyan-400 to-teal-400 shadow-[0_0_10px_#00f2fe] flex items-center justify-center">
+                                <span class="text-[6.5px] font-mono font-bold text-slate-950">CTA ALTA CONVERSÃO</span>
+                            </div>
+                        </div>
+
+                        <!-- Funil de Vendas SVG -->
+                        <div class="col-span-6 bg-[#030710]/85 rounded-xl p-2 border border-cyan-500/15 flex flex-col items-center justify-between">
+                            <span class="text-[7.5px] font-mono text-slate-400">FUNIL DE CONVERSÃO</span>
+                            <svg viewBox="0 0 100 52" class="w-full h-12">
+                                <polygon points="6,4 94,4 80,18 20,18" fill="rgba(59, 130, 246, 0.45)" stroke="#3b82f6" stroke-width="1"/>
+                                <polygon points="22,21 78,21 66,35 34,35" fill="rgba(6, 182, 212, 0.6)" stroke="#06b6d4" stroke-width="1"/>
+                                <polygon points="36,38 64,38 56,50 44,50" fill="rgba(0, 242, 254, 0.9)" stroke="#ffffff" stroke-width="1"/>
+                            </svg>
+                            <span class="text-[8px] font-mono text-emerald-300 font-bold">LCP: 0.4s • +310% LEADS</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-300 mt-2">
+                        <span>PERFORMANCE: <strong class="text-nex-cyan">ULTRA-RÁPIDA</strong></span>
+                        <span class="text-cyan-400">Viajar p/ Setor →</span>
+                    </div>
+                </div>
+
+                <!-- ====================================================
+                     ESTAÇÃO 06 (SUDESTE FRONTAL): BIO SITES (MOBILE HUB 3D)
+                     Coordenada 3D: (250, 195, 165) | RotateY(-16deg)
+                     ==================================================== -->
+                <div id="stationCard-5" onclick="flyToStation(5)" class="node-3d holo-station rounded-2xl p-4" style="width: 280px; height: 225px; margin-left: -140px; margin-top: -112px; transform: translate3d(250px, 195px, 165px) rotateY(-16deg) rotateX(-5deg);">
+                    <div class="flex items-center justify-between border-b border-cyan-500/25 pb-2 mb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="px-1.5 py-0.5 rounded bg-cyan-400/20 border border-cyan-400/40 font-mono text-[9px] font-bold text-nex-cyan">06</span>
+                            <span class="font-mono text-[11px] font-semibold tracking-wider text-white uppercase">BIO SITES • HUB MOBILE</span>
+                        </div>
+                        <span class="px-2 py-0.5 text-[8px] font-mono bg-indigo-500/25 text-indigo-200 rounded-full border border-indigo-400/40">CTR 42.8%</span>
+                    </div>
+
+                    <!-- Mockup Mobile 3D Flutuante com Links Pulsantes e Analytics -->
+                    <div class="grid grid-cols-12 gap-2.5 h-[132px] items-center">
+                        <!-- Smartphone Mockup -->
+                        <div class="col-span-6 h-full bg-[#02060e] rounded-2xl p-2 border-2 border-cyan-400/50 shadow-[0_0_20px_rgba(0,242,254,0.2)] flex flex-col items-center justify-between">
+                            <div class="w-8 h-1 rounded-full bg-slate-700"></div>
+                            <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-500 p-[1.5px]">
+                                <div class="w-full h-full rounded-full bg-slate-950 flex items-center justify-center text-[7px] font-bold text-nex-cyan">NF</div>
+                            </div>
+                            <div class="w-full space-y-1">
+                                <div class="w-full py-1 px-1.5 rounded bg-gradient-to-r from-cyan-400/30 to-teal-400/30 border border-cyan-400/60 text-[7px] font-mono text-white text-center animate-pulse">
+                                    ⚡ Agendar Consultoria
+                                </div>
+                                <div class="w-full py-1 px-1.5 rounded bg-slate-900 border border-cyan-500/30 text-[7px] font-mono text-cyan-200 text-center">
+                                    💬 WhatsApp Direto
+                                </div>
+                                <div class="w-full py-1 px-1.5 rounded bg-slate-900 border border-indigo-500/30 text-[7px] font-mono text-indigo-200 text-center">
+                                    📁 Portfólio & Cases
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Analytics de Cliques do Bio Site -->
+                        <div class="col-span-6 h-full flex flex-col justify-between bg-[#030710]/85 rounded-xl p-2.5 border border-cyan-500/15">
+                            <div>
+                                <span class="text-[8px] font-mono text-slate-400 block">CLIQUES HOJE</span>
+                                <span id="liveBioClicks" class="font-mono text-base font-bold text-nex-cyan">3.842</span>
+                            </div>
+                            <div>
+                                <span class="text-[8px] font-mono text-slate-400 block">CARTÃO DIGITAL NFC/QR</span>
+                                <span class="font-mono text-[9px] text-teal-300 font-semibold">CONVERSÃO IMEDIATA</span>
+                            </div>
+                            <div class="flex items-center gap-1 text-[8px] font-mono text-emerald-300">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                                <span>PIXEL & ANALYTICS ATIVO</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-300 mt-2">
+                        <span>MOBILE-FIRST: <strong class="text-white">ALTO IMPACTO</strong></span>
+                        <span class="text-cyan-400">Viajar p/ Setor →</span>
+                    </div>
+                </div>
+
+                <!-- ====================================================
+                     ESTAÇÃO 07 (SUDOESTE FRONTAL): APLICATIVOS WEB & SAAS
+                     Coordenada 3D: (-250, 195, 165) | RotateY(16deg)
+                     ==================================================== -->
+                <div id="stationCard-6" onclick="flyToStation(6)" class="node-3d holo-station rounded-2xl p-4" style="width: 285px; height: 225px; margin-left: -142px; margin-top: -112px; transform: translate3d(-250px, 195px, 165px) rotateY(16deg) rotateX(-5deg);">
+                    <div class="flex items-center justify-between border-b border-cyan-500/25 pb-2 mb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="px-1.5 py-0.5 rounded bg-cyan-400/20 border border-cyan-400/40 font-mono text-[9px] font-bold text-nex-cyan">07</span>
+                            <span class="font-mono text-[11px] font-semibold tracking-wider text-white uppercase">APLICATIVOS WEB & SAAS</span>
+                        </div>
+                        <span class="px-2 py-0.5 text-[8px] font-mono bg-blue-500/20 text-blue-300 rounded-full border border-blue-400/30">MULTI-CLOUD</span>
+                    </div>
+
+                    <!-- Arquitetura de Portal do Cliente / SaaS Sob Medida -->
+                    <div class="bg-[#030710]/85 rounded-xl p-2.5 border border-cyan-500/15 h-[132px] flex flex-col justify-between">
+                        <div class="flex items-center justify-between text-[8px] font-mono text-slate-400">
+                            <span>PORTAL DO CLIENTE & SAAS</span>
+                            <span class="text-nex-cyan">99.99% SLA</span>
+                        </div>
+
+                        <svg viewBox="0 0 240 68" class="w-full h-16 overflow-visible">
+                            <defs>
+                                <linearGradient id="saasGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="#00f2fe" stop-opacity="0.45"/>
+                                    <stop offset="100%" stop-color="#00f2fe" stop-opacity="0"/>
+                                </linearGradient>
+                            </defs>
+                            <path d="M0,58 Q35,50 70,38 T140,24 T200,14 L240,6 L240,64 L0,64 Z" fill="url(#saasGrad)"/>
+                            <path d="M0,58 Q35,50 70,38 T140,24 T200,14 L240,6" fill="none" stroke="#00f2fe" stroke-width="2.5"/>
+                            <circle cx="70" cy="38" r="3.5" fill="#040914" stroke="#00f2fe" stroke-width="2"/>
+                            <circle cx="140" cy="24" r="3.5" fill="#040914" stroke="#14b8a6" stroke-width="2"/>
+                            <circle cx="200" cy="14" r="3.5" fill="#040914" stroke="#00f2fe" stroke-width="2"/>
+                            <circle cx="240" cy="6" r="4.5" fill="#ffffff"/>
+                        </svg>
+
+                        <div class="flex items-center justify-between text-[8.5px] font-mono">
+                            <span class="px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-200">AUTH SSO</span>
+                            <span class="px-2 py-0.5 rounded bg-teal-500/15 text-teal-200">API REST/GRAPHQL</span>
+                            <span class="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-200">PWA</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between text-[10px] font-mono text-slate-300 mt-2">
+                        <span>ESCALABILIDADE: <strong class="text-nex-cyan">ILIMITADA</strong></span>
+                        <span class="text-cyan-400">Viajar p/ Setor →</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ====================================================
+             OVERLAY DE INTERFACE: COLUNA DA ESQUERDA + HUD TELEMETRIA À DIREITA
+             ==================================================== -->
+        <div class="max-w-[1520px] w-full mx-auto px-4 sm:px-8 lg:px-10 relative z-30 pointer-events-none flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+            
+            <!-- ====================================================
+                 COLUNA DA ESQUERDA: COPYWRITING NEXFLOW + DOCK DE 7 ESTAÇÕES
+                 ==================================================== -->
+            <div id="leftHeroColumn" class="w-full max-w-[540px] pointer-events-auto bg-[#040914]/65 lg:bg-transparent backdrop-blur-md lg:backdrop-blur-none p-4 sm:p-0 rounded-2xl">
+                
+                <!-- Tag Superior -->
+                <div class="inline-flex items-center gap-3 mb-3">
+                    <span class="w-6 h-[2px] bg-nex-cyan shadow-[0_0_10px_#00f2fe]"></span>
+                    <span id="leftDynamicTag" class="text-[11px] sm:text-xs font-mono font-semibold tracking-[0.22em] text-cyan-200 uppercase">
+                        — TECNOLOGIA SOB MEDIDA
+                    </span>
+                </div>
+
+                <!-- Headline Principal -->
+                <h1 class="font-display text-3xl sm:text-5xl xl:text-[52px] font-extrabold leading-[1.06] tracking-tight mb-4">
+                    <span class="block text-white">Menos trabalho</span>
+                    <span class="block text-white">manual.</span>
+                    <span class="block text-cyan-gradient mt-1">Mais controle</span>
+                    <span class="block text-white">da operação.</span>
+                </h1>
+
+                <!-- Subtítulo -->
+                <p id="leftDynamicSubtitle" class="text-slate-300/95 text-sm sm:text-base font-normal leading-relaxed max-w-lg mb-6">
+                    Aplicativos, sistemas, automações e experiências digitais que acompanham o seu negócio.
+                </p>
+
+                <!-- Botões CTA -->
+                <div class="flex flex-wrap items-center gap-3.5 mb-6">
+                    <button onclick="openQuickModal('Conversar sobre meu projeto')" class="btn-primary-glow px-6 py-3.5 rounded-full font-display font-bold text-xs sm:text-sm tracking-wide">
+                        Conversar sobre meu projeto
+                    </button>
+
+                    <button id="btnHeroGuidedTour" onclick="toggleAutoTour()" class="group inline-flex items-center gap-2.5 px-5 py-3.5 rounded-full text-xs sm:text-sm font-mono font-semibold text-cyan-200 bg-[#071124]/90 border border-cyan-400/55 hover:border-nex-cyan hover:bg-cyan-500/15 hover:shadow-[0_0_28px_rgba(0,242,254,0.35)] transition-all">
+                        <span id="heroTourPlayIcon" class="w-5 h-5 rounded-full bg-cyan-400/20 border border-cyan-400 flex items-center justify-center text-[10px] text-nex-cyan group-hover:scale-110 transition-transform">▶</span>
+                        <span id="heroTourBtnText">Iniciar Passeio Guiado 3D</span>
+                    </button>
+                </div>
+
+                <!-- PAINEL DE NAVEGAÇÃO DO PASSEIO VIRTUAL (SELETOR INTERATIVO DAS 7 ESTAÇÕES) -->
+                <div class="hud-glass rounded-2xl p-3.5 border border-cyan-400/30">
+                    <div class="flex items-center justify-between mb-2.5">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-nex-cyan animate-pulse"></span>
+                            <span class="font-mono text-[10px] font-bold tracking-[0.16em] text-cyan-200 uppercase">
+                                ESTAÇÕES DO PASSEIO VIRTUAL 3D (CLIQUE P/ VIAJAR)
+                            </span>
+                        </div>
+                        <span id="stationCounterBadge" class="font-mono text-[10px] text-slate-400">01 / 07</span>
+                    </div>
+
+                    <!-- Grid de Pílulas das 7 Estações -->
+                    <div class="flex flex-wrap gap-1.5">
+                        <button id="sectorBtn-0" onclick="flyToStation(0)" class="sector-pill px-2.5 py-1.5 rounded-lg font-mono text-[10px] font-bold transition-all bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(0,242,254,0.45)]">
+                            1. Visão Geral
+                        </button>
+                        <button id="sectorBtn-1" onclick="flyToStation(1)" class="sector-pill px-2.5 py-1.5 rounded-lg font-mono text-[10px] font-medium text-slate-300 bg-slate-900/80 border border-slate-700/80 hover:border-cyan-400/60 hover:text-white transition-all">
+                            2. Sistemas & Automação
+                        </button>
+                        <button id="sectorBtn-2" onclick="flyToStation(2)" class="sector-pill px-2.5 py-1.5 rounded-lg font-mono text-[10px] font-medium text-slate-300 bg-slate-900/80 border border-slate-700/80 hover:border-cyan-400/60 hover:text-white transition-all">
+                            3. Dashboards & BI
+                        </button>
+                        <button id="sectorBtn-3" onclick="flyToStation(3)" class="sector-pill px-2.5 py-1.5 rounded-lg font-mono text-[10px] font-medium text-slate-300 bg-slate-900/80 border border-slate-700/80 hover:border-cyan-400/60 hover:text-white transition-all">
+                            4. E-commerce
+                        </button>
+                        <button id="sectorBtn-4" onclick="flyToStation(4)" class="sector-pill px-2.5 py-1.5 rounded-lg font-mono text-[10px] font-medium text-slate-300 bg-slate-900/80 border border-slate-700/80 hover:border-cyan-400/60 hover:text-white transition-all">
+                            5. Landing Pages
+                        </button>
+                        <button id="sectorBtn-5" onclick="flyToStation(5)" class="sector-pill px-2.5 py-1.5 rounded-lg font-mono text-[10px] font-medium text-slate-300 bg-slate-900/80 border border-slate-700/80 hover:border-cyan-400/60 hover:text-white transition-all">
+                            6. Bio Sites
+                        </button>
+                        <button id="sectorBtn-6" onclick="flyToStation(6)" class="sector-pill px-2.5 py-1.5 rounded-lg font-mono text-[10px] font-medium text-slate-300 bg-slate-900/80 border border-slate-700/80 hover:border-cyan-400/60 hover:text-white transition-all">
+                            7. Aplicativos Web
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ====================================================
+                 COLUNA DA DIREITA: HUD HOLOGRÁFICO DE TELEMETRIA DO SETOR + CONTROLES DE CÂMERA
+                 ==================================================== -->
+
+
+        </div>
+
+
+        <details id="telemetryDrawer" class="telemetry-drawer">
+            <summary aria-controls="rightTelemetryColumn" aria-label="Mostrar ou recolher informações do setor">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M5 5h14v14H5zM9 5v14M13 9h3M13 13h3"/></svg>
+                <span>Detalhes</span><i aria-hidden="true"></i>
+            </summary>
+            <div id="rightTelemetryColumn" class="w-full lg:w-[390px] pointer-events-auto flex flex-col items-end gap-3 self-end lg:self-center">
+                
+                <div class="telemetry-heading"><span>Informações do setor</span><button type="button" onclick="closeTelemetryDrawer()" aria-label="Recolher informações">✕</button></div>
+                <!-- Controles Superiores de Câmera Orbital (+ / - Zoom / Reset) -->
+                <div class="hidden sm:flex items-center gap-2">
+                    <div class="hud-glass rounded-xl px-3 py-1.5 border border-cyan-500/25 font-mono text-[9.5px] text-slate-300 flex items-center gap-2">
+                        <span class="w-1.5 h-1.5 rounded-full bg-nex-cyan"></span>
+                        <span id="cameraCoordsText">CAM 3D: X:220 Y:-10 Z:-180</span>
+                    </div>
+                    <div class="hud-glass rounded-xl p-1 border border-cyan-500/25 flex items-center gap-1">
+                        <button onclick="adjustZoom(130)" title="Aproximar Zoom 3D" class="w-7 h-7 rounded-lg bg-slate-900/90 hover:bg-cyan-500/20 text-cyan-300 font-mono text-sm flex items-center justify-center transition-colors">+</button>
+                        <button onclick="adjustZoom(-130)" title="Afastar Zoom 3D" class="w-7 h-7 rounded-lg bg-slate-900/90 hover:bg-cyan-500/20 text-cyan-300 font-mono text-sm flex items-center justify-center transition-colors">−</button>
+                        <button onclick="resetCameraView()" title="Resetar Câmera para Visão Geral" class="px-2 h-7 rounded-lg bg-slate-900/90 hover:bg-cyan-500/20 text-slate-300 hover:text-white font-mono text-[10px] flex items-center justify-center transition-colors">Resetar</button>
+                    </div>
+                </div>
+
+                <!-- CARD HOLOGRÁFICO DE INSPEÇÃO DE TELEMETRIA DO SETOR ATIVO -->
+                <div id="stationTelemetryCard" class="w-full hud-glass rounded-2xl p-4 sm:p-5 border border-cyan-400/45 transition-all duration-500">
+                    <div class="flex items-center justify-between border-b border-cyan-500/20 pb-2.5 mb-3">
+                        <div class="flex items-center gap-2">
+                            <span id="hudBadge" class="px-2 py-0.5 rounded bg-cyan-400 text-slate-950 font-mono text-[10px] font-bold">
+                                ESTAÇÃO 01
+                            </span>
+                            <span id="hudCategory" class="font-mono text-[10px] text-cyan-300 uppercase tracking-wider">
+                                NÚCLEO CENTRAL NEXFLOW
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button onclick="prevStation()" title="Estação Anterior" class="w-6 h-6 rounded bg-slate-900 border border-slate-700 hover:border-nex-cyan text-cyan-300 text-xs flex items-center justify-center">‹</button>
+                            <button onclick="nextStation()" title="Próxima Estação" class="w-6 h-6 rounded bg-slate-900 border border-slate-700 hover:border-nex-cyan text-cyan-300 text-xs flex items-center justify-center">›</button>
+                        </div>
+                    </div>
+
+                    <h2 id="hudTitle" class="font-display text-lg sm:text-xl font-bold text-white mb-1.5">
+                        Visão Geral do Ecossistema
+                    </h2>
+                    <p id="hudDesc" class="text-xs text-slate-300 leading-relaxed mb-3.5">
+                        Arquitetura integrada que conecta sistemas, dashboards, e-commerce, landing pages e aplicativos em um único fluxo contínuo.
+                    </p>
+
+                    <p class="text-[9px] font-mono text-slate-400 mb-2">DEMONSTRAÇÃO • INDICADORES ILUSTRATIVOS</p>
+                    <!-- Métricas de Telemetria do Setor -->
+                    <div class="grid grid-cols-3 gap-2 mb-3.5">
+                        <div class="bg-[#030710]/90 border border-cyan-500/20 rounded-xl p-2">
+                            <span id="hudMetricLabel1" class="block font-mono text-[8.5px] text-slate-400 uppercase">EFICIÊNCIA</span>
+                            <span id="hudMetricVal1" class="font-mono text-sm font-bold text-nex-cyan">+84%</span>
+                        </div>
+                        <div class="bg-[#030710]/90 border border-cyan-500/20 rounded-xl p-2">
+                            <span id="hudMetricLabel2" class="block font-mono text-[8.5px] text-slate-400 uppercase">LATÊNCIA</span>
+                            <span id="hudMetricVal2" class="font-mono text-sm font-bold text-teal-300">9.4 ms</span>
+                        </div>
+                        <div class="bg-[#030710]/90 border border-cyan-500/20 rounded-xl p-2">
+                            <span id="hudMetricLabel3" class="block font-mono text-[8.5px] text-slate-400 uppercase">UPTIME SLA</span>
+                            <span id="hudMetricVal3" class="font-mono text-sm font-bold text-white">99.99%</span>
+                        </div>
+                    </div>
+
+                    <!-- Entregáveis / Logs em Tempo Real do Setor -->
+                    <div class="bg-[#02050c]/95 rounded-xl p-2.5 border border-cyan-500/20 mb-3.5">
+                        <div class="flex items-center justify-between text-[8.5px] font-mono text-cyan-400 mb-1">
+                            <span>TELEMETRIA & ENTREGAS DO SETOR</span>
+                            <span class="text-emerald-400 animate-pulse">● ONLINE</span>
+                        </div>
+                        <div id="hudTerminalList" class="font-mono text-[9.5px] text-slate-300 space-y-1">
+                            <!-- Preenchido via JS -->
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2">
+                        <button onclick="openQuickModal('Quero implementar: ' + document.getElementById('hudTitle').textContent)" class="w-full btn-primary-glow py-2 rounded-lg font-display font-bold text-xs">
+                            Solicitar projeto neste setor
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </details>
+    </main>
+
+    <!-- ==========================================
+         3. RODAPÉ DA HERO SECTION (TODOS OS SETORES CLICÁVEIS + CONTROLES 3D)
+         ========================================== -->
+    <footer class="w-full border-t border-cyan-500/15 bg-[#040914]/90 backdrop-blur-md z-40 relative shrink-0">
+        <div class="max-w-[1520px] mx-auto px-4 sm:px-8 lg:px-10 py-3 flex flex-col xl:flex-row items-center justify-between gap-3">
+            
+            <!-- Esquerda: Lista Clicável de Todos os Setores (Move a Câmera 3D diretamente) -->
+            <div class="flex flex-wrap items-center justify-center xl:justify-start gap-2 sm:gap-2.5 text-[10px] font-mono tracking-[0.14em] text-slate-300 uppercase">
+                <button onclick="flyToStation(6)" id="footerLink-6" class="footer-sector-link hover:text-nex-cyan transition-colors cursor-pointer">APLICATIVOS WEB</button>
+                <span class="text-nex-cyan">•</span>
+                <button onclick="flyToStation(1)" id="footerLink-1" class="footer-sector-link hover:text-nex-cyan transition-colors cursor-pointer">SISTEMAS WEB</button>
+                <span class="text-nex-cyan">•</span>
+                <button onclick="flyToStation(1)" class="footer-sector-link hover:text-nex-cyan transition-colors cursor-pointer">AUTOMAÇÕES</button>
+                <span class="text-nex-cyan">•</span>
+                <button onclick="flyToStation(2)" id="footerLink-2" class="footer-sector-link hover:text-nex-cyan transition-colors cursor-pointer">DASHBOARDS</button>
+                <span class="text-nex-cyan">•</span>
+                <button onclick="flyToStation(3)" id="footerLink-3" class="footer-sector-link hover:text-nex-cyan transition-colors cursor-pointer">E-COMMERCE</button>
+                <span class="text-nex-cyan">•</span>
+                <button onclick="flyToStation(4)" id="footerLink-4" class="footer-sector-link hover:text-nex-cyan transition-colors cursor-pointer">LANDING PAGES</button>
+                <span class="text-nex-cyan">•</span>
+                <button onclick="flyToStation(5)" id="footerLink-5" class="footer-sector-link hover:text-nex-cyan transition-colors cursor-pointer">BIO SITES</button>
+            </div>
+
+            <!-- Direita: Indicador 3D, Modo Imersão Tela Cheia, Pausar/Continuar Tour e Continue a explorar -->
+            <div class="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+                
+                <!-- Indicador de Câmera 3D -->
+                <div class="hidden md:flex items-center gap-1.5 text-[10px] font-mono text-cyan-300/90">
+                    <span class="w-2 h-2 rounded-full bg-nex-cyan animate-pulse"></span>
+                    <span>CÂMERA 3D ATIVA</span>
+                </div>
+
+                <!-- Botão Modo Imersão Tela Cheia -->
+                <button id="btnFullImmersion" onclick="toggleCockpitMode()" class="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono text-cyan-200 bg-cyan-500/10 border border-cyan-400/35 hover:border-nex-cyan hover:bg-cyan-500/20 transition-all">
+                    <svg class="w-3.5 h-3.5 text-nex-cyan" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                    </svg>
+                    <span id="fullImmersionText">Modo Imersão Tela Cheia</span>
+                </button>
+
+                <!-- Botão Pausar/Continuar Tour -->
+                <button id="btnFooterTourToggle" onclick="toggleAutoTour()" class="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono text-slate-200 bg-slate-900 border border-slate-700 hover:border-nex-cyan hover:text-nex-cyan transition-all">
+                    <span id="footerTourIcon" class="text-nex-cyan">▶</span>
+                    <span id="footerTourText">Iniciar Tour</span>
+                </button>
+
+                <!-- Botão Pausar Animações Globais -->
+                <button id="toggleAnimBtn" type="button" class="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-mono text-slate-300 bg-slate-900/90 border border-slate-700 hover:border-nex-cyan hover:text-white transition-all">
+                    <span id="toggleAnimIcon" class="text-nex-cyan">||</span>
+                    <span id="toggleAnimText">Pausar</span>
+                </button>
+
+                <!-- Continue a explorar -->
+                <div onclick="sendSiteAction('explore')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();sendSiteAction('explore');}" class="flex items-center gap-2 text-[10px] font-mono tracking-[0.12em] text-slate-300 hover:text-nex-cyan cursor-pointer transition-colors">
+                    <div class="w-3.5 h-5 rounded-full border border-cyan-400/60 flex justify-center pt-1">
+                        <span class="w-1 h-1.5 rounded-full bg-nex-cyan animate-bounce"></span>
+                    </div>
+                    <span>CONTINUE A EXPLORAR</span>
+                </div>
+
+            </div>
+
+        </div>
+    </footer>
+
+    <!-- ==========================================
+         MODAL DE DIAGNÓSTICO / CONVERSÃO
+         ========================================== -->
+    <div id="interactiveModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+        <div class="hud-glass max-w-md w-full rounded-2xl p-6 sm:p-8 border border-cyan-400/50 relative">
+            <button onclick="closeQuickModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-slate-800/80 text-slate-300 hover:text-white hover:bg-cyan-500/20 flex items-center justify-center transition-colors">
+                ✕
+            </button>
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-400/30 text-nex-cyan font-mono text-xs mb-4">
+                <span class="w-2 h-2 rounded-full bg-nex-cyan animate-ping"></span>
+                NEXFLOW • PROJETO SOB MEDIDA
+            </div>
+            <h3 id="modalTitle" class="font-display text-2xl font-bold text-white mb-2">
+                Conversar sobre meu projeto
+            </h3>
+            <p class="text-sm text-slate-300 leading-relaxed mb-5">
+                Selecione o setor prioritário para agendarmos uma demonstração técnica da arquitetura NexFlow aplicada ao seu negócio.
+            </p>
+            <form onsubmit="handleModalSubmit(event)" class="space-y-3.5">
+                <div>
+                    <label class="block text-xs font-mono text-slate-300 mb-1">SEU NOME E EMPRESA</label>
+                    <input type="text" required placeholder="Ex: Mariana Costa — CEO" class="w-full px-3.5 py-2.5 rounded-lg bg-slate-900/90 border border-slate-700 text-sm text-white focus:outline-none focus:border-nex-cyan">
+                </div>
+                <div>
+                    <label class="block text-xs font-mono text-slate-300 mb-1">SETOR DO ECOSSISTEMA</label>
+                    <select id="modalSectorSelect" class="w-full px-3.5 py-2.5 rounded-lg bg-slate-900/90 border border-slate-700 text-sm text-slate-200 focus:outline-none focus:border-nex-cyan">
+                        <option>1. Ecossistema Completo Integrado</option>
+                        <option>2. Sistemas Web & Automação de Processos</option>
+                        <option>3. Dashboards & BI em Tempo Real</option>
+                        <option>4. E-commerce de Alta Conversão & ERP</option>
+                        <option>5. Landing Pages de Alta Velocidade</option>
+                        <option>6. Bio Sites & Hub Mobile Interativo</option>
+                        <option>7. Aplicativos Web & Plataformas SaaS</option>
+                    </select>
+                </div>
+                <button type="submit" class="w-full btn-primary-glow py-3 rounded-lg font-display font-bold text-sm mt-2">
+                    Continuar com meu projeto
+                </button>
+            </form>
+            <div id="modalFeedback" class="hidden mt-4 p-3 rounded-lg bg-emerald-500/15 border border-emerald-400/40 text-emerald-300 text-xs font-mono text-center">
+                Continue no formulário de contato para concluir a solicitação.
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================
+         MOTOR JAVASCRIPT: 7 ESTAÇÕES 3D, AUTO-TOUR COM PROGRESSO, WARP & TELEMETRIA
+         ========================================== -->
+    <script>
+        /* =========================================================
+           1. DEFINIÇÃO DAS 7 ESTAÇÕES DO PASSEIO VIRTUAL NEXFLOW
+           ========================================================= */
+        const STATIONS = [
+            {
+                id: 0,
+                badge: "ESTAÇÃO 01",
+                category: "NÚCLEO CENTRAL NEXFLOW",
+                name: "Visão Geral do Ecossistema",
+                tag: "— TECNOLOGIA SOB MEDIDA",
+                desc: "Visão panorâmica 360° do núcleo NexFlow integrando sistemas, dashboards, e-commerce, landing pages, bio sites e aplicações web.",
+                cam: { x: 185, y: -10, z: -210, rx: -15, ry: -16, rz: 0 },
+                metrics: ["+84%", "9.4 ms", "99.99%"],
+                labels: ["CONTROLE OP.", "LATÊNCIA HUB", "UPTIME SLA"],
+                logs: [
+                    "✓ [HUB] 7 Estações operacionais conectadas em fibra óptica",
+                    "✓ [SYNC] Integração nativa entre ERP, CRM, Checkout e BI",
+                    "✓ [TOUR] Clique em qualquer setor para viajar com a câmera 3D"
+                ]
+            },
+            {
+                id: 1,
+                badge: "ESTAÇÃO 02",
+                category: "WORKFLOWS, APIS & OPERAÇÃO",
+                name: "Sistemas & Automação",
+                tag: "— AUTOMAÇÃO END-TO-END",
+                desc: "Eliminamos planilhas desconexas e tarefas repetitivas com robôs de processo, APIs sob medida e sincronização automática entre setores.",
+                cam: { x: 420, y: 145, z: 370, rx: -6, ry: -22, rz: 0 },
+                metrics: ["-89%", "18.450/m", "ZERO ERROS"],
+                labels: ["TRABALHO MANUAL", "TASKS AUTOMÁTICAS", "CONCILIAÇÃO"],
+                logs: [
+                    "✓ [WORKFLOW] Emissão de NF-e e baixa de estoque automatizadas",
+                    "✓ [API_GATEWAY] Integração bidirecional ERP <-> CRM em 11ms",
+                    "✓ [BOT] Disparo inteligente de alertas e aprovações no WhatsApp"
+                ]
+            },
+            {
+                id: 2,
+                badge: "ESTAÇÃO 03",
+                category: "TELEMETRIA & GESTÃO",
+                name: "Dashboards & BI em Tempo Real",
+                tag: "— INTELIGÊNCIA DE DADOS",
+                desc: "Painéis executivos e operacionais vivos que consolidam múltiplas fontes de dados em indicadores visuais claros para tomada de decisão imediata.",
+                cam: { x: -310, y: 145, z: 370, rx: -6, ry: 22, rz: 0 },
+                metrics: ["REAL-TIME", "+24.8%", "14 FONTES"],
+                labels: ["ATUALIZAÇÃO", "MARGEM / EBITDA", "DADOS UNIFICADOS"],
+                logs: [
+                    "✓ [BI_ENGINE] DRE, Fluxo de Caixa e Metas comerciais ao vivo",
+                    "✓ [ALERTA] Detecção preditiva de gargalos operacionais",
+                    "✓ [EXPORT] Relatórios automatizados para diretoria e conselho"
+                ]
+            },
+            {
+                id: 3,
+                badge: "ESTAÇÃO 04",
+                category: "VENDAS & CATÁLOGO INTELIGENTE",
+                name: "E-commerce de Alta Conversão",
+                tag: "— ESCALA EM VENDAS DIGITAIS",
+                desc: "Lojas virtuais B2C e B2B ultra-rápidas com checkout transparente de 1 clique, recomendação por IA e integração total com ERP e logística.",
+                cam: { x: -380, y: -35, z: 260, rx: -2, ry: 28, rz: 0 },
+                metrics: ["+38%", "42 ped/s", "1-CLICK"],
+                labels: ["TAXA CONVERSÃO", "PICO DE VENDAS", "CHECKOUT PIX/CARD"],
+                logs: [
+                    "✓ [CHECKOUT] Recuperação automática de carrinho via WhatsApp/Pix",
+                    "✓ [ERP_SYNC] Estoque e frete calculados em 12 milissegundos",
+                    "✓ [CATALOG_IA] Vitrine inteligente personalizada por perfil"
+                ]
+            },
+            {
+                id: 4,
+                badge: "ESTAÇÃO 05",
+                category: "PERFORMANCE & FUNIL DE VENDAS",
+                name: "Landing Pages de Alta Velocidade",
+                tag: "— ENGENHARIA DE CONVERSÃO",
+                desc: "Páginas de captura e vendas com carregamento instantâneo, design cinematográfico, testes A/B nativos e rastreamento avançado de funil.",
+                cam: { x: 480, y: -35, z: 260, rx: -2, ry: -28, rz: 0 },
+                metrics: ["100/100", "0.4 seg", "+310%"],
+                labels: ["PAGESPEED SCORE", "TEMPO DE CARGA", "GERAÇÃO DE LEADS"],
+                logs: [
+                    "✓ [SPEED] Core Web Vitals 100/100 com renderização instantânea",
+                    "✓ [AB_TEST] Variante B vencendo com 34.2% de conversão no funil",
+                    "✓ [CRM_HOOK] Leads qualificados enviados em tempo real ao time"
+                ]
+            },
+            {
+                id: 5,
+                badge: "ESTAÇÃO 06",
+                category: "HUB MOBILE & CARTÃO DIGITAL",
+                name: "Bio Sites Interativos",
+                tag: "— EXPERIÊNCIA MOBILE PREMIUM",
+                desc: "Muito além de um agregador de links: um mini-aplicativo mobile de alta conversão para marcas, executivos e especialistas com métricas ao vivo.",
+                cam: { x: -200, y: -190, z: 135, rx: 5, ry: 16, rz: 0 },
+                metrics: ["42.8%", "3.842/dia", "INSTANT"],
+                labels: ["TAXA DE CLIQUE (CTR)", "ACESSOS MOBILE", "AGENDAMENTO"],
+                logs: [
+                    "✓ [MOBILE_HUB] Botões magnéticos com captura de lead integrada",
+                    "✓ [PIXEL_PRO] Rastreamento completo Meta Ads, Google e TikTok",
+                    "✓ [VIP_CARD] Compartilhamento rápido via QR Code e NFC"
+                ]
+            },
+            {
+                id: 6,
+                badge: "ESTAÇÃO 07",
+                category: "SAAS & PORTAIS CORPORATIVOS",
+                name: "Aplicativos Web Sob Medida",
+                tag: "— SOFTWARE PROPRIETÁRIO",
+                desc: "Desenvolvemos plataformas SaaS, portais de clientes e sistemas web robustos na nuvem, prontos para escalar milhares de usuários simultâneos.",
+                cam: { x: 300, y: -190, z: 135, rx: 5, ry: -16, rz: 0 },
+                metrics: ["MULTI-CLOUD", "< 35ms", "99.99%"],
+                labels: ["INFRAESTRUTURA", "RESPOSTA API", "DISPONIBILIDADE"],
+                logs: [
+                    "✓ [SAAS_CORE] Arquitetura multi-tenant com autenticação segura SSO",
+                    "✓ [PWA_READY] Experiência fluida em desktop, tablet e smartphone",
+                    "✓ [CI_CD] Evolução contínua sem quedas ou interrupções"
+                ]
+            }
+        ];
+
+        /* =========================================================
+           2. ESTADO DA CÂMERA 3D E CONTROLES DE NAVEGAÇÃO
+           ========================================================= */
+        const motionPreference = window.matchMedia('(prefers-reduced-motion: reduce)');
+        let hostVisible = true;
+        let sceneDirty = true;
+        function sendSiteAction(action, detail = {}) {
+            if (window.parent === window) {
+                window.location.href = action === 'contact' ? '/#contato' : '/#rotina';
+                return;
+            }
+            window.parent.postMessage({type: 'nexflow:hero-action', action, ...detail}, '*');
+        }
+        function syncMotionState() {
+            document.body.classList.toggle('host-motion-paused', !hostVisible || document.hidden || motionPreference.matches);
+        }
+        window.addEventListener('message', event => {
+            if (event.source !== window.parent || event.data?.type !== 'nexflow:hero-visibility') return;
+            hostVisible = event.data.active === true;
+            syncMotionState();
+        });
+        document.addEventListener('visibilitychange', syncMotionState);
+        motionPreference.addEventListener('change', () => {sceneDirty = true; syncMotionState()});
+        syncMotionState();
+        let currentStationIndex = 0;
+        let isPaused = false;
+        let isAutoTour = false;
+        let isCockpitExpanded = false;
+        let warpBoost = 0;
+
+        // Progresso do Auto-Tour
+        const TOUR_DURATION_MS = 5500;
+        let tourElapsedMs = 0;
+        let lastFrameTime = performance.now();
+
+        const camCurrent = { ...STATIONS[0].cam };
+        const camTarget = { ...STATIONS[0].cam };
+        const userOrbit = { rx: 0, ry: 0, zOffset: 0 };
+
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+
+        const world3D = document.getElementById('world3D');
+        const viewport3D = document.getElementById('viewport3D');
+        const cameraCoordsText = document.getElementById('cameraCoordsText');
+        const autoTourProgressBar = document.getElementById('autoTourProgressBar');
+
+        /* =========================================================
+           3. SINTETIZADOR DE ÁUDIO SCI-FI (WEB AUDIO API)
+           ========================================================= */
+        let soundEnabled = false;
+        let audioCtx = null;
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('audioIcon');
+            if (soundEnabled) {
+                if (!audioCtx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    audioCtx = new AudioContext();
+                }
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+                icon.textContent = '🔊';
+                playSciFiSound('activate');
+            } else {
+                icon.textContent = '🔇';
+            }
+        }
+
+        function playSciFiSound(type) {
+            if (!soundEnabled || !audioCtx) return;
+            try {
+                const now = audioCtx.currentTime;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                if (type === 'fly') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.exponentialRampToValueAtTime(340, now + 0.2);
+                    osc.frequency.exponentialRampToValueAtTime(115, now + 0.5);
+                    gain.gain.setValueAtTime(0.01, now);
+                    gain.gain.linearRampToValueAtTime(0.055, now + 0.14);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+                    osc.start(now);
+                    osc.stop(now + 0.52);
+                } else {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(540, now);
+                    osc.frequency.exponentialRampToValueAtTime(920, now + 0.14);
+                    gain.gain.setValueAtTime(0.045, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+                    osc.start(now);
+                    osc.stop(now + 0.17);
+                }
+            } catch (e) {}
+        }
+
+        /* =========================================================
+           4. FUNÇÃO DE VOO CINEMATOGRÁFICO (FLY TO STATION)
+           ========================================================= */
+        function flyToStation(index, fromAutoTour = false) {
+            if (!fromAutoTour && isAutoTour) {
+                // Reinicia o contador da barra de progresso ao clicar manualmente
+                tourElapsedMs = 0;
+            }
+
+            sceneDirty = true;
+            currentStationIndex = index;
+            const st = STATIONS[index];
+
+            // Se estiver em tela cheia na estação 0, centraliza
+            const xOffset = (isCockpitExpanded && index === 0) ? 0 : st.cam.x;
+
+            camTarget.x = xOffset;
+            camTarget.y = st.cam.y;
+            camTarget.z = st.cam.z;
+            camTarget.rx = st.cam.rx;
+            camTarget.ry = st.cam.ry;
+            camTarget.rz = st.cam.rz;
+
+            userOrbit.rx = 0;
+            userOrbit.ry = 0;
+            userOrbit.zOffset = 0;
+
+            warpBoost = 1.0;
+            playSciFiSound('fly');
+            updateInterfaceForStation(index);
+        }
+
+        function nextStation(fromAuto = false) {
+            const next = (currentStationIndex + 1) % STATIONS.length;
+            flyToStation(next, fromAuto);
+        }
+
+        function prevStation() {
+            const prev = (currentStationIndex - 1 + STATIONS.length) % STATIONS.length;
+            flyToStation(prev);
+        }
+
+        function updateInterfaceForStation(index) {
+            const st = STATIONS[index];
+
+            // 1. Atualiza Pílulas do Seletor de Setores na Coluna Esquerda
+            document.querySelectorAll('.sector-pill').forEach((btn, i) => {
+                if (i === index) {
+                    btn.className = "sector-pill px-2.5 py-1.5 rounded-lg font-mono text-[10px] font-bold transition-all bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(0,242,254,0.5)]";
+                } else {
+                    btn.className = "sector-pill px-2.5 py-1.5 rounded-lg font-mono text-[10px] font-medium text-slate-300 bg-slate-900/80 border border-slate-700/80 hover:border-cyan-400/60 hover:text-white transition-all";
+                }
+            });
+
+            // 2. Destaca o Módulo 3D correspondente no espaço
+            for (let i = 0; i < STATIONS.length; i++) {
+                const card = document.getElementById(`stationCard-${i}`);
+                if (card) {
+                    card.classList.toggle('station-active', i === index);
+                }
+            }
+
+            // 3. Atualiza Links do Rodapé
+            document.querySelectorAll('.footer-sector-link').forEach(el => {
+                el.classList.remove('text-nex-cyan', 'font-bold');
+            });
+            const activeFooterLink = document.getElementById(`footerLink-${index}`);
+            if (activeFooterLink) {
+                activeFooterLink.classList.add('text-nex-cyan', 'font-bold');
+            }
+
+            // 4. Atualiza Textos de Status e HUD Holográfico de Telemetria
+            document.getElementById('navCurrentStationText').textContent = `ESTAÇÃO 0${index + 1}/07: ${st.name.toUpperCase()}`;
+            document.getElementById('stationCounterBadge').textContent = `0${index + 1} / 07`;
+            document.getElementById('leftDynamicTag').textContent = st.tag;
+
+            document.getElementById('hudBadge').textContent = st.badge;
+            document.getElementById('hudCategory').textContent = st.category;
+            document.getElementById('hudTitle').textContent = st.name;
+            document.getElementById('hudDesc').textContent = st.desc;
+
+            document.getElementById('hudMetricLabel1').textContent = st.labels[0];
+            document.getElementById('hudMetricVal1').textContent = st.metrics[0];
+            document.getElementById('hudMetricLabel2').textContent = st.labels[1];
+            document.getElementById('hudMetricVal2').textContent = st.metrics[1];
+            document.getElementById('hudMetricLabel3').textContent = st.labels[2];
+            document.getElementById('hudMetricVal3').textContent = st.metrics[2];
+
+            const term = document.getElementById('hudTerminalList');
+            term.innerHTML = st.logs.map(l => `<div class="text-cyan-100/90 truncate">${l}</div>`).join('');
+
+            // Pré-seleciona o setor no modal
+            const modalSelect = document.getElementById('modalSectorSelect');
+            if (modalSelect && modalSelect.options[index]) {
+                modalSelect.selectedIndex = index;
+            }
+        }
+
+        /* =========================================================
+           5. MODO AUTO-TOUR COM BARRA DE PROGRESSO SINCRONIZADA
+           ========================================================= */
+        function toggleAutoTour() {
+            isAutoTour = !isAutoTour;
+            tourElapsedMs = 0;
+
+            const heroPlayIcon = document.getElementById('heroTourPlayIcon');
+            const heroBtnText = document.getElementById('heroTourBtnText');
+            const footerIcon = document.getElementById('footerTourIcon');
+            const footerText = document.getElementById('footerTourText');
+
+            if (isAutoTour) {
+                heroPlayIcon.textContent = '⏸';
+                heroBtnText.textContent = 'Pausar Passeio Guiado 3D';
+                footerIcon.textContent = '⏸';
+                footerText.textContent = 'Pausar Tour';
+
+                if (currentStationIndex === 0) {
+                    nextStation(true);
+                } else {
+                    playSciFiSound('activate');
+                }
+            } else {
+                heroPlayIcon.textContent = '▶';
+                heroBtnText.textContent = 'Iniciar Passeio Guiado 3D';
+                footerIcon.textContent = '▶';
+                footerText.textContent = 'Continuar Tour';
+                autoTourProgressBar.style.width = '0%';
+            }
+        }
+
+        /* =========================================================
+           6. MODO IMERSÃO TELA CHEIA (OCULTAR/MOSTRAR COLUNA ESQUERDA)
+           ========================================================= */
+        function toggleCockpitMode() {
+            isCockpitExpanded = !isCockpitExpanded;
+            sceneDirty = true;
+            document.body.classList.toggle('cockpit-expanded', isCockpitExpanded);
+            const btnText = document.getElementById('fullImmersionText');
+
+            if (isCockpitExpanded) {
+                btnText.textContent = 'Restaurar Painel de Texto';
+                if (currentStationIndex === 0) camTarget.x = 0;
+            } else {
+                btnText.textContent = 'Modo Imersão Tela Cheia';
+                if (currentStationIndex === 0) camTarget.x = STATIONS[0].cam.x;
+            }
+            warpBoost = 0.6;
+            playSciFiSound('activate');
+        }
+
+        function adjustZoom(deltaZ) {
+            sceneDirty = true;
+            userOrbit.zOffset = Math.max(-440, Math.min(390, userOrbit.zOffset + deltaZ));
+            warpBoost = 0.4;
+        }
+
+        function resetCameraView() {
+            if (isAutoTour) toggleAutoTour();
+            flyToStation(0);
+        }
+
+        /* =========================================================
+           7. ORBIT / PARALLAX 3D LIVRE COM MOUSE, TOUCH E SCROLL
+           ========================================================= */
+        viewport3D.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('.holo-station')) return;
+            isDragging = true;
+            dragStart.x = e.clientX;
+            dragStart.y = e.clientY;
+        });
+
+        window.addEventListener('pointermove', (e) => {
+            if (isPaused || !hostVisible || motionPreference.matches) return;
+            if (isDragging) {
+                const dx = e.clientX - dragStart.x;
+                const dy = e.clientY - dragStart.y;
+                dragStart.x = e.clientX;
+                dragStart.y = e.clientY;
+
+                userOrbit.ry = Math.max(-50, Math.min(50, userOrbit.ry + dx * 0.22));
+                userOrbit.rx = Math.max(-30, Math.min(30, userOrbit.rx - dy * 0.18));
+            } else {
+                const nx = (e.clientX / window.innerWidth - 0.5) * 4.5;
+                const ny = (e.clientY / window.innerHeight - 0.5) * 3.5;
+                userOrbit.ry += (nx - userOrbit.ry * 0.08) * 0.035;
+                userOrbit.rx += (-ny - userOrbit.rx * 0.08) * 0.035;
+            }
+        });
+
+        window.addEventListener('pointerup', () => {
+            isDragging = false;
+        });
+
+        window.addEventListener('wheel', (e) => {
+            if (isPaused) return;
+            if (e.target.closest('#interactiveModal') || !isCockpitExpanded) return;
+            const delta = -Math.sign(e.deltaY) * 80;
+            adjustZoom(delta);
+        }, { passive: true });
+
+        /* =========================================================
+           8. LOOP DE RENDERIZAÇÃO 60FPS: CÂMERA 3D + PARTÍCULAS WARP
+           ========================================================= */
+        const canvas = document.getElementById('warpCanvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+
+        function resizeCanvas() {
+            sceneDirty = true;
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        for (let i = 0; i < 175; i++) {
+            const palette = ['#00f2fe', '#06b6d4', '#14b8a6', '#6366f1'];
+            stars.push({
+                x: (Math.random() - 0.5) * 2200,
+                y: (Math.random() - 0.5) * 1500,
+                z: Math.random() * 1500 + 100,
+                color: palette[Math.floor(Math.random() * palette.length)],
+                size: Math.random() * 1.9 + 0.6
+            });
+        }
+
+        function renderCameraTransform() {
+                const responsiveScale = window.innerWidth < 768 ? 0.52 : (window.innerWidth < 1280 ? 0.76 : 0.96);
+                world3D.style.transform = `
+                    translate3d(${camCurrent.x.toFixed(1)}px, ${camCurrent.y.toFixed(1)}px, ${camCurrent.z.toFixed(1)}px)
+                    rotateX(${camCurrent.rx.toFixed(2)}deg)
+                    rotateY(${camCurrent.ry.toFixed(2)}deg)
+                    rotateZ(${camCurrent.rz.toFixed(2)}deg)
+                    scale3d(${responsiveScale}, ${responsiveScale}, ${responsiveScale})
+                `;
+
+                if (cameraCoordsText) {
+                    cameraCoordsText.textContent = `CAM 3D: X:${Math.round(camCurrent.x)} Y:${Math.round(camCurrent.y)} Z:${Math.round(camCurrent.z)}`;
+                }
+
+        }
+
+        function animateLoop(now) {
+            const dt = Math.min(64, Math.max(0, now - lastFrameTime));
+            lastFrameTime = now;
+
+            if (!isPaused && hostVisible && !document.hidden && !motionPreference.matches) {
+                // Atualiza barra de progresso do Auto-Tour
+                if (isAutoTour) {
+                    tourElapsedMs += dt;
+                    const pct = Math.min(100, (tourElapsedMs / TOUR_DURATION_MS) * 100);
+                    autoTourProgressBar.style.width = `${pct}%`;
+
+                    if (tourElapsedMs >= TOUR_DURATION_MS) {
+                        tourElapsedMs = 0;
+                        nextStation(true);
+                    }
+                }
+
+                // Interpolação Cinemática da Câmera 3D
+                const lerpFactor = 0.062;
+                const targetZ = camTarget.z + userOrbit.zOffset;
+                const targetRX = camTarget.rx + userOrbit.rx;
+                const targetRY = camTarget.ry + userOrbit.ry;
+
+                camCurrent.x += (camTarget.x - camCurrent.x) * lerpFactor;
+                camCurrent.y += (camTarget.y - camCurrent.y) * lerpFactor;
+                camCurrent.z += (targetZ - camCurrent.z) * lerpFactor;
+                camCurrent.rx += (targetRX - camCurrent.rx) * lerpFactor;
+                camCurrent.ry += (targetRY - camCurrent.ry) * lerpFactor;
+                camCurrent.rz += (camTarget.rz - camCurrent.rz) * lerpFactor;
+
+                renderCameraTransform();
+
+                // Renderiza Partículas e Feixes Warp no Canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                const cx = canvas.width * 0.55;
+                const cy = canvas.height * 0.5;
+                const speed = 2.0 + warpBoost * 30;
+                warpBoost *= 0.92;
+
+                for (let i = 0; i < stars.length; i++) {
+                    const s = stars[i];
+                    s.z -= speed;
+                    if (s.z <= 20) {
+                        s.z = 1500;
+                        s.x = (Math.random() - 0.5) * 2200;
+                        s.y = (Math.random() - 0.5) * 1500;
+                    }
+
+                    const k = 520 / s.z;
+                    const px = cx + (s.x + camCurrent.x * 0.35) * k;
+                    const py = cy + (s.y + camCurrent.y * 0.35) * k;
+
+                    if (px >= 0 && px <= canvas.width && py >= 0 && py <= canvas.height) {
+                        const alpha = Math.min(1, (1500 - s.z) / 900) * 0.65;
+                        ctx.strokeStyle = s.color;
+                        ctx.fillStyle = s.color;
+                        ctx.globalAlpha = alpha;
+
+                        if (warpBoost > 0.08) {
+                            const prevK = 520 / (s.z + speed * 2.5);
+                            const prevX = cx + (s.x + camCurrent.x * 0.35) * prevK;
+                            const prevY = cy + (s.y + camCurrent.y * 0.35) * prevK;
+                            ctx.lineWidth = s.size;
+                            ctx.beginPath();
+                            ctx.moveTo(px, py);
+                            ctx.lineTo(prevX, prevY);
+                            ctx.stroke();
+                        } else {
+                            ctx.beginPath();
+                            ctx.arc(px, py, s.size * k * 0.45, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                }
+                ctx.globalAlpha = 1;
+            }
+
+            if (sceneDirty && (isPaused || motionPreference.matches)) {
+                Object.assign(camCurrent, camTarget, {z: camTarget.z + userOrbit.zOffset});
+                renderCameraTransform();
+            }
+            sceneDirty = false;
+            requestAnimationFrame(animateLoop);
+        }
+
+        /* =========================================================
+           9. SIMULAÇÃO DE MÉTRICAS VIVAS NOS CARDS 3D & BOTÃO PAUSAR
+           ========================================================= */
+        setInterval(() => {
+            if (isPaused || !hostVisible || document.hidden || motionPreference.matches) return;
+            const ecomRate = Math.floor(38 + Math.random() * 9);
+            const bioClicks = (3840 + Math.floor(Math.random() * 45)).toLocaleString('pt-BR');
+            const biGauge = Math.floor(96 + Math.random() * 4);
+
+            const elEcom = document.getElementById('liveEcomRate');
+            const elBio = document.getElementById('liveBioClicks');
+            const elBi = document.getElementById('liveBiGauge');
+
+            if (elEcom) elEcom.textContent = `${ecomRate}/s`;
+            if (elBio) elBio.textContent = bioClicks;
+            if (elBi) elBi.textContent = `${biGauge}%`;
+        }, 2000);
+
+        document.getElementById('toggleAnimBtn').addEventListener('click', () => {
+            isPaused = !isPaused;
+            document.body.classList.toggle('animations-paused', isPaused);
+            document.getElementById('toggleAnimIcon').textContent = isPaused ? '▶' : '||';
+            document.getElementById('toggleAnimText').textContent = isPaused ? 'Continuar' : 'Pausar';
+        });
+
+        /* =========================================================
+           10. MODAL INTERATIVO DE PROJETO
+           ========================================================= */
+        function openQuickModal(titleText) {
+            const modal = document.getElementById('interactiveModal');
+            const title = document.getElementById('modalTitle');
+            const feedback = document.getElementById('modalFeedback');
+            if (title && titleText) title.textContent = titleText;
+            if (feedback) feedback.classList.add('hidden');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeQuickModal() {
+            const modal = document.getElementById('interactiveModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function handleModalSubmit(event) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            sendSiteAction('contact', {
+                station: document.getElementById('modalSectorSelect').selectedIndex,
+                name: form.querySelector('input').value.trim()
+            });
+            closeQuickModal();
+        }
+
+
+        function closeTelemetryDrawer() {
+            const drawer = document.getElementById('telemetryDrawer');
+            drawer.open = false;
+            drawer.querySelector('summary').focus({preventScroll: true});
+        }
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape' && document.getElementById('telemetryDrawer').open && document.getElementById('interactiveModal').classList.contains('hidden')) closeTelemetryDrawer();
+        });
+
+        window.onload = function () {
+            updateInterfaceForStation(0);
+            if (sceneDirty && (isPaused || motionPreference.matches)) {
+                Object.assign(camCurrent, camTarget, {z: camTarget.z + userOrbit.zOffset});
+                renderCameraTransform();
+            }
+            sceneDirty = false;
+            requestAnimationFrame(animateLoop);
+        };
+    </script>
+</body>
+</html>

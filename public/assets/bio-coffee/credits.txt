@@ -1,0 +1,15 @@
+Coffee profile demo assets supplied in the project brief:
+Video: https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260707_003042_3d2380a6-1ce6-4407-a2e2-cfec46546407.mp4
+Poster: first frame of the supplied video.
+Drink: https://polo-pecan-73837341.figma.site/_assets/v11/a8ba62db54d1e331b7beb36d69308e9b92516b99.png
+Sandwich: https://polo-pecan-73837341.figma.site/_assets/v11/953600065119f54f64ab9edb076b3cbb289fcff8.png
+Cafe: https://polo-pecan-73837341.figma.site/_assets/v11/aef68e05f729a30ed177f74c2cece578c05bfdba.png
+Latte: https://polo-pecan-73837341.figma.site/_assets/v11/976a811111808abc50be33c2483872dbdb6ad5a8.png
+
+Laurel ornaments: Tabler Icons v3.48.0, MIT License, Paweł Kuna.
+Source: https://raw.githubusercontent.com/tabler/tabler-icons/v3.48.0/icons/filled/laurel-wreath.svg
+The same vector is cropped using viewBox to provide left and right halves.
+Full license: laurel-license.txt
+
+The referenced proprietary local font files were not supplied. This demo
+uses the system font fallbacks listed in the brief and ships no such fonts.
